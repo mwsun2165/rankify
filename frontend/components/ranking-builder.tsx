@@ -137,6 +137,47 @@ export function RankingBuilder() {
             metaMap[row.id] = toSpotify(row)
           })
 
+          // Fallback: if some album metadata is missing (e.g. not cached in DB yet)
+          const rankedIds: string[] = data.ranking_items.map(
+            (ri: any) => ri.item_id
+          )
+          const missingIds = rankedIds.filter((id) => !metaMap[id])
+          if (missingIds.length && data.ranking_type === 'albums') {
+            try {
+              const { makeSpotifyRequest, SPOTIFY_API_BASE } = await import(
+                '@/lib/spotify-server'
+              )
+              for (const albumId of missingIds) {
+                const res = await makeSpotifyRequest(
+                  `${SPOTIFY_API_BASE}/albums/${albumId}`
+                )
+                if (res.ok) {
+                  const albumJson: any = await res.json()
+                  // Update artist map if needed
+                  if (albumJson.artists?.length) {
+                    const a = albumJson.artists[0]
+                    artistMap[a.id] = a.name
+                  }
+                  // Convert to SpotifyAlbum shape that our components expect
+                  metaMap[albumJson.id] = {
+                    id: albumJson.id,
+                    name: albumJson.name,
+                    images: albumJson.images || [],
+                    artists: albumJson.artists,
+                    total_tracks: albumJson.total_tracks,
+                    release_date: albumJson.release_date,
+                    external_urls: albumJson.external_urls,
+                  }
+                }
+              }
+            } catch (err) {
+              console.error(
+                'Failed to fetch missing album metadata for editor',
+                err
+              )
+            }
+          }
+
           setRankedItems(
             data.ranking_items
               .sort((a: any, b: any) => a.position - b.position)

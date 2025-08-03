@@ -99,15 +99,53 @@ export async function getFullRanking(
     }
 
     case 'albums': {
-      // First fetch the albums with artist_id
+      // 1) Try to load album rows from our "albums" table
       const { data: albums, error: albumsErr } = await supabase
         .from('albums')
         .select('id, name, image_url, artist_id')
         .in('id', itemIds)
       if (albumsErr) throw albumsErr
 
-      // Collect artist_ids to fetch names
-      const artistIds = [...new Set(albums?.map((a) => a.artist_id))]
+      // Build quick look-ups so we can determine which album IDs are missing
+      const foundIds = new Set(albums?.map((a) => a.id) || [])
+      const missingIds = itemIds.filter((id) => !foundIds.has(id))
+
+      // 2) If we are missing any albums (e.g. not cached in DB yet), fetch them directly
+      if (missingIds.length) {
+        try {
+          // We intentionally fetch albums sequentially to respect Spotify rate limits. The number of
+          // missing IDs should be very small (only newly-encountered albums), so performance impact
+          // is negligible.
+          const { makeSpotifyRequest, SPOTIFY_API_BASE } = await import(
+            '@/lib/spotify-server'
+          )
+          for (const albumId of missingIds) {
+            const res = await makeSpotifyRequest(
+              `${SPOTIFY_API_BASE}/albums/${albumId}`
+            )
+            if (res.ok) {
+              const albumJson: any = await res.json()
+              albums?.push({
+                id: albumJson.id,
+                name: albumJson.name,
+                image_url: albumJson.images?.[0]?.url || null,
+                artist_id: albumJson.artists?.[0]?.id || null,
+              } as any)
+            }
+          }
+        } catch (err) {
+          // If Spotify fetch fails we swallow the error so the page can still render with the data we have
+          console.error(
+            'Failed to fetch missing album metadata from Spotify',
+            err
+          )
+        }
+      }
+
+      // 3) Collect artist_ids to fetch names
+      const artistIds = [
+        ...new Set(albums?.map((a) => a.artist_id).filter(Boolean)),
+      ]
       let artistMap: Record<string, string> = {}
       if (artistIds.length) {
         const { data: artists } = await supabase
@@ -122,9 +160,9 @@ export async function getFullRanking(
       albums?.forEach((album) => {
         itemsMeta.push({
           id: album.id,
-          name: album.name,
-          image_url: album.image_url,
-          artist_name: artistMap[album.artist_id] || null,
+          name: (album as any).name,
+          image_url: (album as any).image_url,
+          artist_name: artistMap[(album as any).artist_id] || null,
         })
       })
       break
