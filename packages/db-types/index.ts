@@ -97,6 +97,7 @@ export interface Database {
           avatar_url: string | null
           spotify_id: string | null
           spotify_display_name: string | null
+          friend_code: string
           created_at: string
           updated_at: string
         }
@@ -107,6 +108,7 @@ export interface Database {
           avatar_url?: string | null
           spotify_id?: string | null
           spotify_display_name?: string | null
+          friend_code?: string
           created_at?: string
           updated_at?: string
         }
@@ -117,6 +119,7 @@ export interface Database {
           avatar_url?: string | null
           spotify_id?: string | null
           spotify_display_name?: string | null
+          friend_code?: string
           created_at?: string
           updated_at?: string
         }
@@ -323,12 +326,106 @@ export interface Database {
           }
         ]
       }
+      friend_requests: {
+        Row: {
+          id: string
+          requester_id: string
+          target_id: string
+          status: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          requester_id: string
+          target_id: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          requester_id?: string
+          target_id?: string
+          status?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "friend_requests_requester_id_fkey"
+            columns: ["requester_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "friend_requests_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      notifications: {
+        Row: {
+          id: string
+          user_id: string
+          type: string
+          data: Json
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          type: string
+          data: Json
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          type?: string
+          data?: Json
+          is_read?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_friend_count: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: number
+      }
+      get_user_ranking_likes: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: number
+      }
+      get_unread_notification_count: {
+        Args: {
+          user_uuid: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
@@ -348,6 +445,8 @@ export type RankingItem = Database['public']['Tables']['ranking_items']['Row']
 export type Follow = Database['public']['Tables']['follows']['Row']
 export type RankingLike = Database['public']['Tables']['ranking_likes']['Row']
 export type RankingComment = Database['public']['Tables']['ranking_comments']['Row']
+export type FriendRequest = Database['public']['Tables']['friend_requests']['Row']
+export type Notification = Database['public']['Tables']['notifications']['Row']
 
 // Insert types
 export type ArtistInsert = Database['public']['Tables']['artists']['Insert']
@@ -358,6 +457,8 @@ export type RankingItemInsert = Database['public']['Tables']['ranking_items']['I
 export type FollowInsert = Database['public']['Tables']['follows']['Insert']
 export type RankingLikeInsert = Database['public']['Tables']['ranking_likes']['Insert']
 export type RankingCommentInsert = Database['public']['Tables']['ranking_comments']['Insert']
+export type FriendRequestInsert = Database['public']['Tables']['friend_requests']['Insert']
+export type NotificationInsert = Database['public']['Tables']['notifications']['Insert']
 
 // Update types
 export type ArtistUpdate = Database['public']['Tables']['artists']['Update']
@@ -368,3 +469,5 @@ export type RankingItemUpdate = Database['public']['Tables']['ranking_items']['U
 export type FollowUpdate = Database['public']['Tables']['follows']['Update']
 export type RankingLikeUpdate = Database['public']['Tables']['ranking_likes']['Update']
 export type RankingCommentUpdate = Database['public']['Tables']['ranking_comments']['Update']
+export type FriendRequestUpdate = Database['public']['Tables']['friend_requests']['Update']
+export type NotificationUpdate = Database['public']['Tables']['notifications']['Update']

@@ -2,7 +2,7 @@ import type { SpotifySearchResult } from '@/types/spotify'
 
 export async function searchSpotify(
   query: string,
-  type: 'album' | 'artist',
+  type: 'album' | 'artist' | 'track',
   signal?: AbortSignal
 ): Promise<SpotifySearchResult> {
   try {
@@ -26,7 +26,8 @@ export async function searchSpotify(
     // Transform the Spotify API response to match our expected format
     return {
       albums: data.albums || { items: [] },
-      artists: data.artists || { items: [] }
+      artists: data.artists || { items: [] },
+      tracks: data.tracks || { items: [] }
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

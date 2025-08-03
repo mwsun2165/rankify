@@ -48,4 +48,7 @@ export interface SpotifySearchResult {
   artists: {
     items: SpotifyArtist[]
   }
+  tracks: {
+    items: SpotifyTrack[]
+  }
 }

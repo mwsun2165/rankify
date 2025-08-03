@@ -1,32 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-
-const SPOTIFY_API_BASE = 'https://api.spotify.com/v1'
-const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token'
-
-async function getSpotifyAccessToken(): Promise<string> {
-  const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Spotify credentials not configured')
-  }
-
-  const response = await fetch(SPOTIFY_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-    },
-    body: 'grant_type=client_credentials'
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to get Spotify access token')
-  }
-
-  const data = await response.json()
-  return data.access_token
-}
+import { makeSpotifyRequest, SPOTIFY_API_BASE } from '@/lib/spotify-server'
 
 export async function GET(
   request: NextRequest,
@@ -35,20 +8,13 @@ export async function GET(
   try {
     const { artistId } = params
 
-    // Get access token
-    const accessToken = await getSpotifyAccessToken()
-
     // Get artist albums
     const albumsUrl = new URL(`${SPOTIFY_API_BASE}/artists/${artistId}/albums`)
     albumsUrl.searchParams.set('include_groups', 'album,single')
     albumsUrl.searchParams.set('market', 'US')
     albumsUrl.searchParams.set('limit', '50')
 
-    const spotifyResponse = await fetch(albumsUrl.toString(), {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
-      }
-    })
+    const spotifyResponse = await makeSpotifyRequest(albumsUrl.toString())
 
     if (!spotifyResponse.ok) {
       throw new Error('Spotify API request failed')

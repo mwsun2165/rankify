@@ -33,14 +33,21 @@ export function AuthButton() {
 
   const handleLogout = async () => {
     setLoading(true)
-    
+
     try {
+      // Clear client-side session (localStorage & memory)
       const { error } = await supabase.auth.signOut()
       if (error) {
         console.error('Error logging out:', error)
-      } else {
-        router.refresh()
       }
+
+      // Also clear the HTTP-only cookies on the server so that
+      // subsequent requests made from the browser are unauthenticated.
+      await fetch('/auth/signout', { method: 'POST' })
+
+      // Redirect the user to the login page and force a revalidation of server components
+      router.replace('/')
+      router.refresh()
     } catch (error) {
       console.error('Error logging out:', error)
     } finally {

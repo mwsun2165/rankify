@@ -1,32 +1,8 @@
+'use server'
+
 import { NextRequest, NextResponse } from 'next/server'
-
-const SPOTIFY_API_BASE = 'https://api.spotify.com/v1'
-const SPOTIFY_TOKEN_URL = 'https://accounts.spotify.com/api/token'
-
-async function getSpotifyAccessToken(): Promise<string> {
-  const clientId = process.env.NEXT_PUBLIC_SPOTIFY_CLIENT_ID
-  const clientSecret = process.env.SPOTIFY_CLIENT_SECRET
-
-  if (!clientId || !clientSecret) {
-    throw new Error('Spotify credentials not configured')
-  }
-
-  const response = await fetch(SPOTIFY_TOKEN_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`
-    },
-    body: 'grant_type=client_credentials'
-  })
-
-  if (!response.ok) {
-    throw new Error('Failed to get Spotify access token')
-  }
-
-  const data = await response.json()
-  return data.access_token
-}
+import { makeSpotifyRequest, SPOTIFY_API_BASE } from '@/lib/spotify-server'
+import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export async function GET(
   request: NextRequest,
@@ -35,32 +11,65 @@ export async function GET(
   try {
     const { albumId } = params
 
-    // Get access token
-    const accessToken = await getSpotifyAccessToken()
-
-    // Get album tracks
-    const tracksUrl = new URL(`${SPOTIFY_API_BASE}/albums/${albumId}/tracks`)
-    tracksUrl.searchParams.set('market', 'US')
-    tracksUrl.searchParams.set('limit', '50')
-
-    const spotifyResponse = await fetch(tracksUrl.toString(), {
-      headers: {
-        'Authorization': `Bearer ${accessToken}`
+    // Build URL helper
+    const getTracksResponse = async (url: URL, useUserToken = false, userToken?: string) => {
+      if (useUserToken && userToken) {
+        return fetch(url.toString(), {
+          headers: {
+            Authorization: `Bearer ${userToken}`,
+          },
+          // bypass nextjs cache
+          cache: 'no-store',
+        })
       }
-    })
-
-    if (!spotifyResponse.ok) {
-      throw new Error('Spotify API request failed')
+      // Default: use app-level token via helper
+      return makeSpotifyRequest(url.toString())
     }
 
-    const data = await spotifyResponse.json()
-    return NextResponse.json(data)
+    // Get album tracks with app token first
+    const tracksUrl = new URL(`${SPOTIFY_API_BASE}/albums/${albumId}/tracks`)
+    tracksUrl.searchParams.set('limit', '50')
 
+    let response = await getTracksResponse(tracksUrl)
+
+    // Retry with market=US if failed
+    if (!response.ok) {
+      tracksUrl.searchParams.set('market', 'US')
+      response = await getTracksResponse(tracksUrl)
+    }
+
+    // If still unauthorized, try with the user's Spotify OAuth token (if logged in)
+    if (response.status === 401) {
+      const supabase = createServerSupabaseClient()
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession()
+
+      if (sessionError) {
+        console.error('Error getting session:', sessionError)
+      }
+
+      const userToken = session?.provider_token || session?.access_token
+
+      if (userToken) {
+        response = await getTracksResponse(tracksUrl, true, userToken)
+      }
+    }
+
+    if (!response.ok) {
+      const errBody = await response.clone().text()
+      console.error('Spotify API failed:', response.status, errBody)
+      return NextResponse.json(
+        { error: 'Failed to fetch album tracks' },
+        { status: response.status }
+      )
+    }
+
+    const data = await response.json()
+    return NextResponse.json(data)
   } catch (error) {
     console.error('Spotify album tracks error:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch album tracks' }, 
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to fetch album tracks' }, { status: 500 })
   }
 }

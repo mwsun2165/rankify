@@ -25,16 +25,102 @@ export type RankableItem = SpotifyAlbum | SpotifyArtist | SpotifyTrack
 
 export function RankingBuilder() {
   const searchParams = useSearchParams()
-  const [rankingType, setRankingType] = useState<'album' | 'artist' | 'songs'>('album')
+  const [rankingType, setRankingType] = useState<'albums' | 'artists' | 'songs'>('albums')
   const [rankedItems, setRankedItems] = useState<RankableItem[]>([])
   const [poolItems, setPoolItems] = useState<RankableItem[]>([])
+  const [fixedPool, setFixedPool] = useState(false)
+  const [rankingId, setRankingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [loading, setLoading] = useState(false)
   const [activeItem, setActiveItem] = useState<RankableItem | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
-  // Initialize from URL parameters
+  // Initialize from URL parameters OR edit mode
   useEffect(() => {
+    const editId = searchParams.get('id')
+    if (editId) {
+      // Editing existing ranking
+      ;(async () => {
+        const supabase = createClientSupabaseClient()
+        const { data, error } = await supabase
+          .from('rankings')
+          .select(`*, ranking_items(position,item_id), pool_item_ids, source_type, source_id`)
+          .eq('id', editId)
+          .single()
+        if (error || !data) return
+
+        setRankingId(editId)
+        setTitle(data.title)
+        setRankingType(data.ranking_type as any)
+
+        // Fetch metadata for ranked and pool items from DB
+        const allIds = Array.from(new Set([
+          ...data.ranking_items.map((ri: any) => ri.item_id),
+          ...(data.pool_item_ids || [])
+        ]))
+        if (allIds.length) {
+          let table = data.ranking_type === 'artists' ? 'artists' : data.ranking_type === 'albums' ? 'albums' : 'tracks'
+          const { data: meta } = await supabase.from(table).select('*').in('id', allIds)
+
+          // Build artist map for albums to include artist names
+          let artistMap: Record<string, string> = {}
+          if (data.ranking_type === 'albums' && meta && meta.length) {
+            const artistIds = Array.from(new Set(meta.map((row: any) => row.artist_id).filter(Boolean)))
+            if (artistIds.length) {
+              const { data: artists } = await supabase.from('artists').select('id, name').in('id', artistIds)
+              artistMap = Object.fromEntries((artists || []).map((a: any) => [a.id, a.name]))
+            }
+          }
+
+          const toSpotify = (row: any) => {
+            if (data.ranking_type === 'artists') {
+              return {
+                id: row.id,
+                name: row.name,
+                images: row.image_url ? [{ url: row.image_url }] : [],
+                genres: row.genres || [],
+                followers: { total: row.popularity || 0 },
+                external_urls: { spotify: row.spotify_url }
+              }
+            } else if (data.ranking_type === 'albums') {
+              return {
+                id: row.id,
+                name: row.name,
+                images: row.image_url ? [{ url: row.image_url }] : [],
+                artists: [{ id: row.artist_id, name: artistMap[row.artist_id] || '' }],
+                total_tracks: row.total_tracks,
+                release_date: row.release_date,
+                external_urls: { spotify: row.spotify_url }
+              }
+            } else {
+              return {
+                id: row.id,
+                name: row.name,
+                album: { images: row.image_url ? [{ url: row.image_url }] : [] },
+                duration_ms: row.duration_ms,
+                artists: [],
+                external_urls: { spotify: row.spotify_url }
+              }
+            }
+          }
+
+          const metaMap: Record<string, any> = {}
+          meta?.forEach((row: any) => {
+            metaMap[row.id] = toSpotify(row)
+          })
+
+          setRankedItems(data.ranking_items.sort((a: any,b: any)=>a.position-b.position).map((ri: any)=>metaMap[ri.item_id]).filter(Boolean))
+          setPoolItems((data.pool_item_ids||[]).map((id:string)=>metaMap[id]).filter(Boolean))
+        }
+
+        if (data.source_type && data.source_id) {
+          setFixedPool(true)
+        }
+      })()
+      return
+    }
+
+    // Creating new ranking from query params
     const type = searchParams.get('type') as 'albums' | 'songs' | null
     const artistId = searchParams.get('artistId')
     const albumId = searchParams.get('albumId')
@@ -55,6 +141,7 @@ export function RankingBuilder() {
 
       // Load items into pool
       loadPoolItems(type, artistId, albumId)
+      setFixedPool(true)
     }
   }, [searchParams])
 
@@ -91,6 +178,17 @@ export function RankingBuilder() {
       setPoolItems(prev => [...prev, item])
     }
   }, [poolItems, rankedItems])
+
+  // Handle user switching ranking type (Artists / Albums / Songs)
+  const handleRankingTypeChange = (type: 'albums' | 'artists' | 'songs') => {
+    if (fixedPool) return
+    if (type === rankingType) return
+    // Reset all state when changing type
+    setRankingType(type)
+    setRankedItems([])
+    setPoolItems([])
+    // Keep title but optional reset could be setTitle('') if desired
+  }
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
@@ -187,14 +285,29 @@ export function RankingBuilder() {
       }
 
       // Save the ranking
-      const { saveRanking } = await import('@/lib/rankings')
+      const { saveRanking, updateRanking } = await import('@/lib/rankings')
       
-      const rankingId = await saveRanking({
+      if (rankingId) {
+        await updateRanking(rankingId, {
+          title: title.trim(),
+          ranking_type: rankingType,
+          visibility: 'public',
+          items: rankedItems,
+          pool_items: poolItems,
+          source_type: fixedPool ? (searchParams.get('artistId') ? 'artist' : searchParams.get('albumId') ? 'album' : undefined) as any : undefined,
+          source_id: fixedPool ? (searchParams.get('artistId') || searchParams.get('albumId') || undefined) : undefined,
+        })
+      } else {
+        const newId = await saveRanking({
         title: title.trim(),
-        ranking_type: rankingType === 'songs' ? 'songs' : rankingType === 'albums' ? 'albums' : 'artists',
-        is_public: true, // Default to public for now
-        items: rankedItems
+        ranking_type: rankingType,
+        visibility: 'public',
+        items: rankedItems,
+        pool_items: poolItems,
+        source_type: (searchParams.get('artistId') || searchParams.get('albumId')) ? (searchParams.get('artistId') ? 'artist' : 'album') as any : undefined,
+        source_id: searchParams.get('artistId') || searchParams.get('albumId') || undefined
       }, user.id)
+      }
 
       // Redirect to browse page to see the saved ranking
       window.location.href = '/browse'
@@ -214,7 +327,7 @@ export function RankingBuilder() {
       onDragEnd={handleDragEnd}
       modifiers={[restrictToWindowEdges]}
     >
-      <div className="space-y-8">
+      <div className="space-y-8 overflow-x-hidden">
         {/* Title Input */}
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
@@ -230,17 +343,25 @@ export function RankingBuilder() {
           />
         </div>
 
-        {/* Ranking Type Display */}
+        {/* Ranking Type Toggle */}
         <div className="flex items-center gap-4">
-          <div className={`px-4 py-2 rounded-lg font-medium ${
-            rankingType === 'albums'
-              ? 'bg-blue-500 text-white'
-              : rankingType === 'songs'
-                ? 'bg-green-500 text-white'
-                : 'bg-purple-500 text-white'
-          }`}>
-            {rankingType === 'albums' ? 'Albums' : rankingType === 'songs' ? 'Songs' : 'Artists'}
-          </div>
+          {(['artists','albums','songs'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => handleRankingTypeChange(type)}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                rankingType === type
+                  ? type === 'artists'
+                    ? 'bg-purple-500 text-white'
+                    : type === 'albums'
+                      ? 'bg-blue-500 text-white'
+                      : 'bg-green-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </button>
+          ))}
           {loading && (
             <div className="flex items-center gap-2 text-gray-600">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-600"></div>
@@ -249,7 +370,7 @@ export function RankingBuilder() {
           )}
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-8 max-w-full">
           {/* Left Column - Ranking Box */}
           <div className="space-y-4">
             <div className="flex justify-between items-center">
@@ -275,20 +396,8 @@ export function RankingBuilder() {
             </SortableContext>
           </div>
 
-          {/* Right Column - Search & Pool */}
+          {/* Right Column - Pool & Search */}
           <div className="space-y-6">
-            {/* Search - only show if not pre-populated */}
-            {!searchParams.get('type') && (
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Search & Add Items</h3>
-                <SearchInterface 
-                  searchType={rankingType as 'album' | 'artist'}
-                  onAddItem={handleAddToPool}
-                  compact={true}
-                />
-              </div>
-            )}
-
             {/* Pool */}
             <div>
               <h3 className="text-lg font-semibold mb-4">
@@ -296,6 +405,20 @@ export function RankingBuilder() {
               </h3>
               <ItemPool items={poolItems} />
             </div>
+
+            {/* Search - only show if pool is flexible */}
+            {!fixedPool && (
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Search & Add Items</h3>
+                <SearchInterface 
+                  key={rankingType}
+                  allowTrackSearch={true}
+                  searchType={rankingType === 'albums' ? 'album' : rankingType === 'artists' ? 'artist' : 'track'}
+                  onAddItem={handleAddToPool}
+                  compact={true}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

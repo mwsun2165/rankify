@@ -1,6 +1,5 @@
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { LoginButton } from '@/components/login-button'
-import { UserNav } from '@/components/user-nav'
 
 export default async function HomePage() {
   const supabase = createServerSupabaseClient()
@@ -43,16 +42,6 @@ export default async function HomePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Header */}
-      <header className="border-b">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          <div className="flex justify-between items-center">
-            <h1 className="text-xl font-semibold">Rankify</h1>
-            <UserNav />
-          </div>
-        </div>
-      </header>
-
       {/* Main Content */}
       <div className="max-w-2xl mx-auto px-4 py-16">
         <div className="space-y-4">
