@@ -23,7 +23,10 @@ export function NotificationDropdown() {
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false)
       }
     }
@@ -41,7 +44,10 @@ export function NotificationDropdown() {
         if (response.ok) {
           const data = await response.json()
           setNotifications(data.notifications || [])
-          setUnreadCount(data.notifications?.filter((n: Notification) => !n.is_read).length || 0)
+          setUnreadCount(
+            data.notifications?.filter((n: Notification) => !n.is_read)
+              .length || 0
+          )
         }
       } catch (error) {
         console.error('Error loading notifications:', error)
@@ -81,9 +87,13 @@ export function NotificationDropdown() {
 
             // Show toast for new notifications
             if (newNotification.type === 'friend_request') {
-              toast.success(`New friend request from ${newNotification.data.requester_name}`)
+              toast.success(
+                `New friend request from ${newNotification.data.requester_name}`
+              )
             } else if (newNotification.type === 'ranking_like') {
-              toast.success(`${newNotification.data.liker_name} liked your ranking`)
+              toast.success(
+                `${newNotification.data.liker_name} liked your ranking`
+              )
             }
           }
         )
@@ -97,7 +107,11 @@ export function NotificationDropdown() {
     }
   }, [supabase])
 
-  const handleFriendRequest = async (notificationId: string, requestId: string, action: 'accept' | 'decline') => {
+  const handleFriendRequest = async (
+    notificationId: string,
+    requestId: string,
+    action: 'accept' | 'decline'
+  ) => {
     try {
       const response = await fetch('/api/friends/respond', {
         method: 'POST',
@@ -111,10 +125,10 @@ export function NotificationDropdown() {
 
       if (response.ok) {
         toast.success(data.message)
-        
+
         // Mark notification as read and remove from list
-        setNotifications(prev => prev.filter(n => n.id !== notificationId))
-        setUnreadCount(prev => Math.max(0, prev - 1))
+        setNotifications((prev) => prev.filter((n) => n.id !== notificationId))
+        setUnreadCount((prev) => Math.max(0, prev - 1))
       } else {
         toast.error(data.error || 'Failed to respond to friend request')
       }
@@ -134,10 +148,12 @@ export function NotificationDropdown() {
       })
 
       if (response.ok) {
-        setNotifications(prev => 
-          prev.map(n => n.id === notificationId ? { ...n, is_read: true } : n)
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notificationId ? { ...n, is_read: true } : n
+          )
         )
-        setUnreadCount(prev => Math.max(0, prev - 1))
+        setUnreadCount((prev) => Math.max(0, prev - 1))
       }
     } catch (error) {
       console.error('Error marking notification as read:', error)
@@ -155,7 +171,7 @@ export function NotificationDropdown() {
       })
 
       if (response.ok) {
-        setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+        setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
         setUnreadCount(0)
         toast.success('All notifications marked as read')
       }
@@ -169,7 +185,10 @@ export function NotificationDropdown() {
 
     if (notification.type === 'friend_request') {
       return (
-        <div key={notification.id} className={`p-4 border-b border-gray-100 ${!notification.is_read ? 'bg-blue-50' : ''}`}>
+        <div
+          key={notification.id}
+          className={`p-4 border-b border-gray-100 ${!notification.is_read ? 'bg-blue-50' : ''}`}
+        >
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-900">
@@ -183,13 +202,25 @@ export function NotificationDropdown() {
             {!notification.is_read && (
               <div className="flex space-x-2 ml-4">
                 <button
-                  onClick={() => handleFriendRequest(notification.id, notification.data.friend_request_id, 'accept')}
+                  onClick={() =>
+                    handleFriendRequest(
+                      notification.id,
+                      notification.data.friend_request_id,
+                      'accept'
+                    )
+                  }
                   className="px-3 py-1 text-xs bg-green-600 text-white rounded hover:bg-green-700"
                 >
                   Accept
                 </button>
                 <button
-                  onClick={() => handleFriendRequest(notification.id, notification.data.friend_request_id, 'decline')}
+                  onClick={() =>
+                    handleFriendRequest(
+                      notification.id,
+                      notification.data.friend_request_id,
+                      'decline'
+                    )
+                  }
                   className="px-3 py-1 text-xs bg-gray-600 text-white rounded hover:bg-gray-700"
                 >
                   Decline
@@ -203,18 +234,17 @@ export function NotificationDropdown() {
 
     if (notification.type === 'ranking_like') {
       return (
-        <div 
-          key={notification.id} 
+        <div
+          key={notification.id}
           className={`p-4 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${!notification.is_read ? 'bg-blue-50' : ''}`}
           onClick={() => !notification.is_read && markAsRead(notification.id)}
         >
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <p className="text-sm font-medium text-gray-900">
-                New Like
-              </p>
+              <p className="text-sm font-medium text-gray-900">New Like</p>
               <p className="text-sm text-gray-600 mt-1">
-                {notification.data.liker_name} liked "{notification.data.ranking_title}"
+                {notification.data.liker_name} liked &quot;
+                {notification.data.ranking_title}&quot;
               </p>
               <p className="text-xs text-gray-500 mt-1">{timeAgo}</p>
             </div>
@@ -236,10 +266,20 @@ export function NotificationDropdown() {
         onClick={() => setIsOpen(!isOpen)}
         className="relative p-2 text-gray-600 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 rounded-full"
       >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+          />
         </svg>
-        
+
         {/* Unread Count Badge */}
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
@@ -254,7 +294,9 @@ export function NotificationDropdown() {
           {/* Header */}
           <div className="p-4 border-b border-gray-100">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">Notifications</h3>
+              <h3 className="text-lg font-semibold text-gray-900">
+                Notifications
+              </h3>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}

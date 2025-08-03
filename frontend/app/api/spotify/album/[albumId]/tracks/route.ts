@@ -12,7 +12,11 @@ export async function GET(
     const { albumId } = params
 
     // Build URL helper
-    const getTracksResponse = async (url: URL, useUserToken = false, userToken?: string) => {
+    const getTracksResponse = async (
+      url: URL,
+      useUserToken = false,
+      userToken?: string
+    ) => {
       if (useUserToken && userToken) {
         return fetch(url.toString(), {
           headers: {
@@ -70,6 +74,9 @@ export async function GET(
     return NextResponse.json(data)
   } catch (error) {
     console.error('Spotify album tracks error:', error)
-    return NextResponse.json({ error: 'Failed to fetch album tracks' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Failed to fetch album tracks' },
+      { status: 500 }
+    )
   }
 }

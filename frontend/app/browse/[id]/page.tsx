@@ -7,7 +7,9 @@ interface BrowseRankingPageProps {
   params: { id: string }
 }
 
-export default async function BrowseRankingPage({ params }: BrowseRankingPageProps) {
+export default async function BrowseRankingPage({
+  params,
+}: BrowseRankingPageProps) {
   const supabase = createServerSupabaseClient()
   const {
     data: { user },
@@ -21,7 +23,11 @@ export default async function BrowseRankingPage({ params }: BrowseRankingPagePro
 
   return (
     <main className="min-h-screen bg-white py-8 px-4">
-      <RankingView ranking={full.ranking} items={full.items} isOwner={isOwner} />
+      <RankingView
+        ranking={full.ranking}
+        items={full.items}
+        isOwner={isOwner}
+      />
     </main>
   )
 }

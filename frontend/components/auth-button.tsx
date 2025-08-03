@@ -11,16 +11,16 @@ export function AuthButton() {
 
   const handleSpotifyLogin = async () => {
     setLoading(true)
-    
+
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'spotify',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
-          scopes: 'user-read-email user-read-private'
-        }
+          scopes: 'user-read-email user-read-private',
+        },
       })
-      
+
       if (error) {
         console.error('Error logging in:', error)
       }
@@ -58,6 +58,6 @@ export function AuthButton() {
   return {
     handleSpotifyLogin,
     handleLogout,
-    loading
+    loading,
   }
 }

@@ -10,7 +10,8 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'Rankify - Music Rankings',
-  description: 'Create and share Spotify album / song / artist rankings with friends',
+  description:
+    'Create and share Spotify album / song / artist rankings with friends',
 }
 
 export default async function RootLayout({
@@ -30,56 +31,57 @@ export default async function RootLayout({
           {/* Navigation Header */}
           {user && (
             <nav className="bg-white shadow-sm border-b border-gray-200">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center h-16">
-                {/* Logo and Navigation Links */}
-                <div className="flex items-center space-x-8">
-                  <Link href="/" className="text-2xl font-bold text-green-600">
-                    Rankify
-                  </Link>
-                  <div className="hidden md:flex space-x-6">
-                    <Link 
-                      href="/search" 
-                      className="text-gray-700 hover:text-green-600 font-medium transition-colors"
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                  {/* Logo and Navigation Links */}
+                  <div className="flex items-center space-x-8">
+                    <Link
+                      href="/"
+                      className="text-2xl font-bold text-green-600"
                     >
-                      Search
+                      Rankify
                     </Link>
-                    <Link 
-                      href="/rank" 
-                      className="text-gray-700 hover:text-green-600 font-medium transition-colors"
-                    >
-                      Create Ranking
-                    </Link>
-                                          <Link 
-                      href="/browse" 
-                      className="text-gray-700 hover:text-green-600 font-medium transition-colors"
-                    >
-                      Browse
-                    </Link>
-                    <Link 
-                      href="/compare" 
-                      className="text-gray-700 hover:text-green-600 font-medium transition-colors"
-                    >
-                      Compare
-                    </Link>
+                    <div className="hidden md:flex space-x-6">
+                      <Link
+                        href="/search"
+                        className="text-gray-700 hover:text-green-600 font-medium transition-colors"
+                      >
+                        Search
+                      </Link>
+                      <Link
+                        href="/rank"
+                        className="text-gray-700 hover:text-green-600 font-medium transition-colors"
+                      >
+                        Create Ranking
+                      </Link>
+                      <Link
+                        href="/browse"
+                        className="text-gray-700 hover:text-green-600 font-medium transition-colors"
+                      >
+                        Browse
+                      </Link>
+                      <Link
+                        href="/compare"
+                        className="text-gray-700 hover:text-green-600 font-medium transition-colors"
+                      >
+                        Compare
+                      </Link>
+                    </div>
                   </div>
-                </div>
 
-                {/* User Navigation */}
-                <UserNav />
+                  {/* User Navigation */}
+                  <UserNav />
+                </div>
               </div>
-            </div>
-          </nav>
+            </nav>
           )}
 
           {/* Main Content */}
-          <main>
-            {children}
-          </main>
+          <main>{children}</main>
         </div>
 
         {/* Toast Notifications */}
-        <Toaster 
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,

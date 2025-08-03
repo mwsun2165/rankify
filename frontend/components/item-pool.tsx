@@ -12,17 +12,19 @@ interface ItemPoolProps {
 export function ItemPool({ items }: ItemPoolProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [currentTab, setCurrentTab] = useState(0)
-  
+
   const { setNodeRef, isOver } = useDroppable({
-    id: 'item-pool'
+    id: 'item-pool',
   })
 
   // Filter items based on search
-  const filteredItems = items.filter(item => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ('artists' in item && item.artists.some(artist => 
-      artist.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ))
+  const filteredItems = items.filter(
+    (item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ('artists' in item &&
+        item.artists.some((artist) =>
+          artist.name.toLowerCase().includes(searchQuery.toLowerCase())
+        ))
   )
 
   // Paginate items (20 per tab)
@@ -71,10 +73,10 @@ export function ItemPool({ items }: ItemPoolProps) {
       <div
         ref={setNodeRef}
         className={`min-h-32 p-4 border-2 border-dashed rounded-lg transition-colors ${
-          isOver 
-            ? 'border-green-500 bg-green-50' 
-            : items.length === 0 
-              ? 'border-gray-300 bg-gray-50' 
+          isOver
+            ? 'border-green-500 bg-green-50'
+            : items.length === 0
+              ? 'border-gray-300 bg-gray-50'
               : 'border-gray-300 bg-white'
         }`}
       >
@@ -88,7 +90,7 @@ export function ItemPool({ items }: ItemPoolProps) {
           </div>
         ) : (
           <div className="grid gap-2">
-            {currentItems.map(item => (
+            {currentItems.map((item) => (
               <SortableItem key={item.id} item={item} />
             ))}
           </div>
@@ -98,10 +100,9 @@ export function ItemPool({ items }: ItemPoolProps) {
       {/* Pool info */}
       {items.length > 0 && (
         <p className="text-sm text-gray-500 text-center">
-          {filteredItems.length === items.length 
+          {filteredItems.length === items.length
             ? `${items.length} items in pool`
-            : `${filteredItems.length} of ${items.length} items shown`
-          }
+            : `${filteredItems.length} of ${items.length} items shown`}
           {totalTabs > 1 && ` • Page ${currentTab + 1} of ${totalTabs}`}
         </p>
       )}

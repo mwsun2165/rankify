@@ -9,11 +9,11 @@ export async function searchSpotify(
     const searchParams = new URLSearchParams({
       q: query,
       type: type,
-      limit: '10'
+      limit: '10',
     })
 
     const response = await fetch(`/api/spotify/search?${searchParams}`, {
-      signal
+      signal,
     })
 
     if (!response.ok) {
@@ -22,12 +22,12 @@ export async function searchSpotify(
     }
 
     const data = await response.json()
-    
+
     // Transform the Spotify API response to match our expected format
     return {
       albums: data.albums || { items: [] },
       artists: data.artists || { items: [] },
-      tracks: data.tracks || { items: [] }
+      tracks: data.tracks || { items: [] },
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

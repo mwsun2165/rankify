@@ -1,6 +1,10 @@
 import { createClientSupabaseClient } from '@/lib/supabase-client'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
-import type { RankingInsert, RankingItemInsert, Ranking } from '@rankify/db-types'
+import type {
+  RankingInsert,
+  RankingItemInsert,
+  Ranking,
+} from '@rankify/db-types'
 import type { RankableItem } from '@/components/ranking-builder'
 
 export interface SaveRankingData {
@@ -15,15 +19,20 @@ export interface SaveRankingData {
   source_variant?: number
 }
 
-export async function saveRanking(data: SaveRankingData, userId: string): Promise<string> {
+export async function saveRanking(
+  data: SaveRankingData,
+  userId: string
+): Promise<string> {
   const supabase = createClientSupabaseClient()
 
   try {
     // First, ensure user profile exists
     await ensureUserProfileExists(userId)
-    
+
     // Then, ensure artists, albums, and tracks exist in our database (both ranked and pool)
-    await ensureSpotifyDataExists([...data.items, ...data.pool_items].filter(Boolean))
+    await ensureSpotifyDataExists(
+      [...data.items, ...data.pool_items].filter(Boolean)
+    )
 
     // Determine variant for fixed rankings
     let variant = 1
@@ -37,25 +46,26 @@ export async function saveRanking(data: SaveRankingData, userId: string): Promis
         .order('source_variant', { ascending: false })
         .limit(1)
         .maybeSingle()
-      if (existing?.source_variant) variant = existing.source_variant + 1
+      if ((existing as any)?.source_variant)
+        variant = (existing as any).source_variant + 1
     }
 
     // Create the ranking
-    const rankingData: RankingInsert = {
+    const rankingData: any = {
       user_id: userId,
       title: data.title,
       description: data.description,
       ranking_type: data.ranking_type,
       visibility: data.visibility,
-      pool_item_ids: data.pool_items.map(i => i.id),
-      source_type: data.source_type || null as any,
-      source_id: data.source_id || null as any,
-      source_variant: variant
+      pool_item_ids: data.pool_items.map((i) => i.id),
+      source_type: data.source_type || (null as any),
+      source_id: data.source_id || (null as any),
+      source_variant: variant,
     }
 
     const { data: ranking, error: rankingError } = await supabase
       .from('rankings')
-      .insert(rankingData)
+      .insert(rankingData as any)
       .select('id')
       .single()
 
@@ -69,7 +79,7 @@ export async function saveRanking(data: SaveRankingData, userId: string): Promis
       ranking_id: ranking.id,
       item_id: item.id,
       position: index + 1,
-      notes: null
+      notes: null,
     }))
 
     const { error: itemsError } = await supabase
@@ -101,19 +111,20 @@ async function ensureUserProfileExists(userId: string): Promise<void> {
 
     if (fetchError && fetchError.code === 'PGRST116') {
       // Profile doesn't exist, create it
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       if (user) {
-        const { error: insertError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            username: user.user_metadata?.preferred_username || null,
-            display_name: user.user_metadata?.full_name || user.user_metadata?.name || null,
-            avatar_url: user.user_metadata?.avatar_url || null,
-            spotify_id: user.user_metadata?.provider_id || null,
-            spotify_display_name: user.user_metadata?.name || null
-          })
+        const { error: insertError } = await supabase.from('profiles').insert({
+          id: userId,
+          username: user.user_metadata?.preferred_username || null,
+          display_name:
+            user.user_metadata?.full_name || user.user_metadata?.name || null,
+          avatar_url: user.user_metadata?.avatar_url || null,
+          spotify_id: user.user_metadata?.provider_id || null,
+          spotify_display_name: user.user_metadata?.name || null,
+        })
 
         if (insertError) {
           console.warn('Failed to create user profile:', insertError)
@@ -133,8 +144,8 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
   const albums = new Map<string, any>()
   const tracks = new Map<string, any>()
 
-  items.forEach(item => {
-    if (!item) return;
+  items.forEach((item) => {
+    if (!item) return
     if ('artists' in item && 'total_tracks' in item) {
       // This is an album
       albums.set(item.id, {
@@ -144,18 +155,18 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
         image_url: item.images?.[0]?.url || null,
         release_date: item.release_date || null,
         total_tracks: item.total_tracks,
-        spotify_url: item.external_urls.spotify
+        spotify_url: item.external_urls.spotify,
       })
-      
+
       // Add the album's artists
-      item.artists.forEach(artist => {
+      item.artists.forEach((artist) => {
         artists.set(artist.id, {
           id: artist.id,
           name: artist.name,
           image_url: null,
           genres: [],
           popularity: null,
-          spotify_url: artist.external_urls?.spotify || null
+          spotify_url: artist.external_urls?.spotify || null,
         })
       })
     } else if ('duration_ms' in item) {
@@ -164,21 +175,21 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
         id: item.id,
         name: item.name,
         album_id: item.album?.id || null,
-        artist_ids: item.artists.map(a => a.id),
+        artist_ids: item.artists.map((a) => a.id),
         duration_ms: item.duration_ms,
         track_number: item.track_number,
         image_url: item.album?.images?.[0]?.url || null,
-        spotify_url: item.external_urls.spotify
+        spotify_url: item.external_urls.spotify,
       })
       // This is a track - add its artists and album
-      item.artists.forEach(artist => {
+      item.artists.forEach((artist) => {
         artists.set(artist.id, {
           id: artist.id,
           name: artist.name,
           image_url: null,
           genres: [],
           popularity: null,
-          spotify_url: artist.external_urls?.spotify || null
+          spotify_url: artist.external_urls?.spotify || null,
         })
       })
 
@@ -192,7 +203,7 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
             image_url: item.album.images?.[0]?.url || null,
             release_date: item.album.release_date || null,
             total_tracks: item.album.total_tracks,
-            spotify_url: item.album.external_urls.spotify
+            spotify_url: item.album.external_urls.spotify,
           })
         }
       }
@@ -204,7 +215,7 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
         image_url: item.images?.[0]?.url || null,
         genres: item.genres || [],
         popularity: item.followers?.total || null,
-        spotify_url: item.external_urls.spotify
+        spotify_url: item.external_urls.spotify,
       })
     }
   })
@@ -234,7 +245,7 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
   // Insert tracks (ignore conflicts)
   if (tracks.size > 0) {
     const { error: trackError } = await supabase
-      .from('tracks')
+      .from('tracks' as any)
       .upsert(Array.from(tracks.values()), { onConflict: 'id' })
 
     if (trackError) {
@@ -243,7 +254,10 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
   }
 }
 
-export async function updateRanking(rankingId: string, data: SaveRankingData): Promise<void> {
+export async function updateRanking(
+  rankingId: string,
+  data: SaveRankingData
+): Promise<void> {
   const supabase = createClientSupabaseClient()
 
   // Update main ranking row
@@ -254,15 +268,17 @@ export async function updateRanking(rankingId: string, data: SaveRankingData): P
       description: data.description,
       ranking_type: data.ranking_type,
       visibility: data.visibility,
-      pool_item_ids: data.pool_items.map(i => i.id),
-      source_type: data.source_type || null as any,
-      source_id: data.source_id || null as any,
+      pool_item_ids: data.pool_items.map((i) => i.id),
+      source_type: data.source_type || (null as any),
+      source_id: data.source_id || (null as any),
     })
     .eq('id', rankingId)
   if (updateErr) throw updateErr
 
   // Upsert Spotify metadata for any new items
-  await ensureSpotifyDataExists([...data.items, ...data.pool_items].filter(Boolean))
+  await ensureSpotifyDataExists(
+    [...data.items, ...data.pool_items].filter(Boolean)
+  )
 
   // Re-create ranking_items (simplest strategy)
   const { error: delErr } = await supabase
@@ -277,7 +293,9 @@ export async function updateRanking(rankingId: string, data: SaveRankingData): P
     position: index + 1,
     notes: null,
   }))
-  const { error: insErr } = await supabase.from('ranking_items').insert(rankingItems)
+  const { error: insErr } = await supabase
+    .from('ranking_items')
+    .insert(rankingItems)
   if (insErr) throw insErr
 }
 
@@ -286,10 +304,12 @@ export async function getUserRankings(userId: string): Promise<Ranking[]> {
 
   const { data, error } = await supabase
     .from('rankings')
-    .select(`
+    .select(
+      `
       *,
       ranking_items(count)
-    `)
+    `
+    )
     .eq('user_id', userId)
     .order('updated_at', { ascending: false })
 
@@ -302,12 +322,14 @@ export async function getPublicRankings(): Promise<Ranking[]> {
 
   const { data, error } = await supabase
     .from('rankings')
-    .select(`
+    .select(
+      `
       *,
       profiles(username, display_name),
       ranking_items(count),
       ranking_likes(count)
-    `)
+    `
+    )
     .eq('visibility', 'public')
     .order('updated_at', { ascending: false })
     .limit(20)
@@ -327,16 +349,18 @@ export async function getFriendsRankings(userId: string): Promise<Ranking[]> {
 
   if (followsError) throw followsError
 
-  const friendIds = (follows || []).map(f => (f as any).following_id)
+  const friendIds = (follows || []).map((f) => (f as any).following_id)
   if (friendIds.length === 0) return []
 
   const { data, error } = await supabase
     .from('rankings')
-    .select(`
+    .select(
+      `
       *,
       profiles(username, display_name),
       ranking_items(count)
-    `)
+    `
+    )
     .in('user_id', friendIds)
     .in('visibility', ['public', 'friends'])
     .order('updated_at', { ascending: false })
@@ -351,7 +375,8 @@ export async function getRankingDetails(rankingId: string) {
 
   const { data, error } = await supabase
     .from('rankings')
-    .select(`
+    .select(
+      `
       *,
       profiles(username, display_name, avatar_url),
       ranking_items(
@@ -366,7 +391,8 @@ export async function getRankingDetails(rankingId: string) {
         created_at,
         profiles(username, display_name, avatar_url)
       )
-    `)
+    `
+    )
     .eq('id', rankingId)
     .single()
 

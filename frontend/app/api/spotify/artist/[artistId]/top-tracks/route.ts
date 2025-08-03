@@ -9,7 +9,9 @@ export async function GET(
     const { artistId } = params
 
     // Get artist top tracks
-    const tracksUrl = new URL(`${SPOTIFY_API_BASE}/artists/${artistId}/top-tracks`)
+    const tracksUrl = new URL(
+      `${SPOTIFY_API_BASE}/artists/${artistId}/top-tracks`
+    )
     tracksUrl.searchParams.set('market', 'US')
 
     const spotifyResponse = await makeSpotifyRequest(tracksUrl.toString())
@@ -20,11 +22,10 @@ export async function GET(
 
     const data = await spotifyResponse.json()
     return NextResponse.json(data)
-
   } catch (error) {
     console.error('Spotify artist top tracks error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch artist top tracks' }, 
+      { error: 'Failed to fetch artist top tracks' },
       { status: 500 }
     )
   }

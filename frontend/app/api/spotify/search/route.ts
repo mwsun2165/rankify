@@ -9,7 +9,10 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get('limit') || '10'
 
     if (!query) {
-      return NextResponse.json({ error: 'Query parameter is required' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Query parameter is required' },
+        { status: 400 }
+      )
     }
 
     // Search Spotify
@@ -27,11 +30,10 @@ export async function GET(request: NextRequest) {
 
     const data = await spotifyResponse.json()
     return NextResponse.json(data)
-
   } catch (error) {
     console.error('Spotify search error:', error)
     return NextResponse.json(
-      { error: 'Failed to search Spotify' }, 
+      { error: 'Failed to search Spotify' },
       { status: 500 }
     )
   }

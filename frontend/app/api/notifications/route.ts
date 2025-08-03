@@ -4,9 +4,12 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient()
-    
+
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -30,23 +33,31 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('Error fetching notifications:', error)
-      return NextResponse.json({ error: 'Failed to fetch notifications' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to fetch notifications' },
+        { status: 500 }
+      )
     }
 
     return NextResponse.json({ notifications })
-
   } catch (error) {
     console.error('Error in notifications API:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient()
-    
+
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -63,7 +74,10 @@ export async function PATCH(request: NextRequest) {
 
       if (error) {
         console.error('Error marking all notifications as read:', error)
-        return NextResponse.json({ error: 'Failed to mark notifications as read' }, { status: 500 })
+        return NextResponse.json(
+          { error: 'Failed to mark notifications as read' },
+          { status: 500 }
+        )
       }
     } else if (notificationIds && Array.isArray(notificationIds)) {
       // Mark specific notifications as read
@@ -75,14 +89,19 @@ export async function PATCH(request: NextRequest) {
 
       if (error) {
         console.error('Error marking notifications as read:', error)
-        return NextResponse.json({ error: 'Failed to mark notifications as read' }, { status: 500 })
+        return NextResponse.json(
+          { error: 'Failed to mark notifications as read' },
+          { status: 500 }
+        )
       }
     }
 
     return NextResponse.json({ success: true })
-
   } catch (error) {
     console.error('Error in notifications PATCH:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

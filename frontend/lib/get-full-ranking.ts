@@ -32,7 +32,10 @@ export interface FullRanking {
  * @param rankingId  The UUID of the ranking row
  * @param viewerId   The UUID of the currently signed-in user (optional – used for owner checks inside RLS)
  */
-export async function getFullRanking(rankingId: string, viewerId?: string): Promise<FullRanking | null> {
+export async function getFullRanking(
+  rankingId: string,
+  viewerId?: string
+): Promise<FullRanking | null> {
   const supabase = createServerSupabaseClient()
 
   // Make sure RLS policies run in the context of the current viewer. If viewerId was provided
@@ -49,7 +52,8 @@ export async function getFullRanking(rankingId: string, viewerId?: string): Prom
   // 1. Get the ranking row together with its items and creator profile
   const { data: ranking, error: rankingErr } = await supabase
     .from('rankings')
-    .select(`
+    .select(
+      `
       *,
       profiles(username, display_name, avatar_url),
       ranking_items(
@@ -57,7 +61,8 @@ export async function getFullRanking(rankingId: string, viewerId?: string): Prom
         position,
         notes
       )
-    `)
+    `
+    )
     .eq('id', rankingId)
     .single()
 
@@ -65,7 +70,9 @@ export async function getFullRanking(rankingId: string, viewerId?: string): Prom
   if (!ranking) return null
 
   // Sort items by position – easier to work with later
-  const itemsSorted = (ranking as any).ranking_items.sort((a: any, b: any) => a.position - b.position) as {
+  const itemsSorted = (ranking as any).ranking_items.sort(
+    (a: any, b: any) => a.position - b.position
+  ) as {
     item_id: string
     position: number
     notes: string | null
@@ -107,7 +114,9 @@ export async function getFullRanking(rankingId: string, viewerId?: string): Prom
           .from('artists')
           .select('id, name')
           .in('id', artistIds)
-        artistMap = Object.fromEntries((artists || []).map((a) => [a.id, a.name]))
+        artistMap = Object.fromEntries(
+          (artists || []).map((a) => [a.id, a.name])
+        )
       }
 
       albums?.forEach((album) => {
@@ -123,12 +132,12 @@ export async function getFullRanking(rankingId: string, viewerId?: string): Prom
 
     case 'songs': {
       const { data: tracks, error: tracksErr } = await supabase
-        .from('tracks')
+        .from('tracks' as any)
         .select('id, name, image_url, duration_ms')
         .in('id', itemIds)
       if (tracksErr) throw tracksErr
 
-      tracks?.forEach((track) => {
+      tracks?.forEach((track: any) => {
         itemsMeta.push({
           id: track.id,
           name: track.name,

@@ -16,10 +16,15 @@ interface FriendProfile {
   avatar_url: string | null
 }
 
-export function FriendSystemCard({ friendCode, userId }: FriendSystemCardProps) {
+export function FriendSystemCard({
+  friendCode,
+  userId,
+}: FriendSystemCardProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Friend System</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-6">
+        Friend System
+      </h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Friend Code + Add Friend */}
         <FriendCodeCard friendCode={friendCode} hideHeader />
@@ -54,7 +59,9 @@ function FriendsList({ userId }: { userId: string }) {
           return
         }
 
-        const followingIds = (followingData || []).map((f: any) => f.following_id)
+        const followingIds = (followingData || []).map(
+          (f: any) => f.following_id
+        )
         if (followingIds.length === 0) {
           setFriends([])
           return
@@ -102,7 +109,10 @@ function FriendsList({ userId }: { userId: string }) {
   }, [userId])
 
   const totalPages = Math.ceil(friends.length / pageSize)
-  const paginatedFriends = friends.slice(currentPage * pageSize, currentPage * pageSize + pageSize)
+  const paginatedFriends = friends.slice(
+    currentPage * pageSize,
+    currentPage * pageSize + pageSize
+  )
 
   return (
     <div>
@@ -135,10 +145,17 @@ function FriendsList({ userId }: { userId: string }) {
             {paginatedFriends.map((friend) => (
               <li key={friend.id} className="flex items-center">
                 {friend.avatar_url ? (
-                  <img src={friend.avatar_url} alt="Avatar" className="w-10 h-10 rounded-full" />
+                  <img
+                    src={friend.avatar_url}
+                    alt="Avatar"
+                    className="w-10 h-10 rounded-full"
+                  />
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-gray-700 font-bold uppercase">
-                    {(friend.display_name || friend.username || '?').slice(0, 1)}
+                    {(friend.display_name || friend.username || '?').slice(
+                      0,
+                      1
+                    )}
                   </div>
                 )}
                 <div className="ml-3">

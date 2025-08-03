@@ -3,7 +3,12 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
 import { useDebounce } from '@/hooks/use-debounce'
 import { searchSpotify } from '@/lib/spotify'
-import type { SpotifySearchResult, SpotifyAlbum, SpotifyArtist, SpotifyTrack } from '@/types/spotify'
+import type {
+  SpotifySearchResult,
+  SpotifyAlbum,
+  SpotifyArtist,
+  SpotifyTrack,
+} from '@/types/spotify'
 
 interface SearchInterfaceProps {
   allowTrackSearch?: boolean
@@ -13,50 +18,61 @@ interface SearchInterfaceProps {
   showRankingButtons?: boolean
 }
 
-export function SearchInterface({ searchType: propSearchType, allowTrackSearch = false, onAddItem, compact = false, showRankingButtons = false }: SearchInterfaceProps) {
+export function SearchInterface({
+  searchType: propSearchType,
+  allowTrackSearch = false,
+  onAddItem,
+  compact = false,
+  showRankingButtons = false,
+}: SearchInterfaceProps) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<SpotifySearchResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [searchType, setSearchType] = useState<'album' | 'artist' | 'track'>(propSearchType || 'album')
-  
+  const [searchType, setSearchType] = useState<'album' | 'artist' | 'track'>(
+    propSearchType || 'album'
+  )
+
   const abortControllerRef = useRef<AbortController | null>(null)
-  
+
   const debouncedQuery = useDebounce(query, 300)
 
-  const performSearch = useCallback(async (searchQuery: string) => {
-    if (!searchQuery.trim()) {
-      setResults(null)
-      return
-    }
-
-    // Cancel previous request
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort()
-    }
-
-    // Create new abort controller
-    abortControllerRef.current = new AbortController()
-    
-    setLoading(true)
-    setError(null)
-
-    try {
-      const searchResults = await searchSpotify(
-        searchQuery, 
-        searchType, 
-        abortControllerRef.current.signal
-      )
-      setResults(searchResults)
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        setError(err.message || 'Search failed')
+  const performSearch = useCallback(
+    async (searchQuery: string) => {
+      if (!searchQuery.trim()) {
         setResults(null)
+        return
       }
-    } finally {
-      setLoading(false)
-    }
-  }, [searchType])
+
+      // Cancel previous request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+
+      // Create new abort controller
+      abortControllerRef.current = new AbortController()
+
+      setLoading(true)
+      setError(null)
+
+      try {
+        const searchResults = await searchSpotify(
+          searchQuery,
+          searchType,
+          abortControllerRef.current.signal
+        )
+        setResults(searchResults)
+      } catch (err: any) {
+        if (err.name !== 'AbortError') {
+          setError(err.message || 'Search failed')
+          setResults(null)
+        }
+      } finally {
+        setLoading(false)
+      }
+    },
+    [searchType]
+  )
 
   // Trigger search when debounced query changes
   useEffect(() => {
@@ -85,7 +101,7 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
   }, [propSearchType, searchType, query, performSearch])
 
   return (
-    <div className={compact ? "space-y-4" : "space-y-6"}>
+    <div className={compact ? 'space-y-4' : 'space-y-6'}>
       {/* Search Type Toggle - hide if controlled by parent */}
       {!propSearchType && (
         <div className="flex gap-2">
@@ -119,7 +135,8 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
               }`}
             >
               Songs
-            </button>) }
+            </button>
+          )}
         </div>
       )}
 
@@ -152,19 +169,29 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
       {results && (
         <div className="space-y-4">
           <h3 className="text-lg font-medium">
-            {searchType === 'album' ? 'Albums' : searchType === 'artist' ? 'Artists' : 'Songs'} ({
-              searchType === 'album'
-                ? results.albums.items.length
-                : searchType === 'artist'
-                  ? results.artists.items.length
-                  : results.tracks.items.length
-            })
+            {searchType === 'album'
+              ? 'Albums'
+              : searchType === 'artist'
+                ? 'Artists'
+                : 'Songs'}{' '}
+            (
+            {searchType === 'album'
+              ? results.albums.items.length
+              : searchType === 'artist'
+                ? results.artists.items.length
+                : results.tracks.items.length}
+            )
           </h3>
 
-          <div className={`grid gap-3 ${compact ? 'max-h-64 overflow-y-auto' : ''}`}>
+          <div
+            className={`grid gap-3 ${compact ? 'max-h-64 overflow-y-auto' : ''}`}
+          >
             {searchType === 'album' &&
               results.albums.items.slice(0, compact ? 5 : 10).map((album) => (
-                <div key={album.id} className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${compact ? 'p-3' : 'p-4'}`}>
+                <div
+                  key={album.id}
+                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${compact ? 'p-3' : 'p-4'}`}
+                >
                   {album.images[0] && (
                     <img
                       src={album.images[0].url}
@@ -173,10 +200,20 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <h4 className={`font-medium text-gray-900 truncate ${compact ? 'text-sm' : ''}`}>{album.name}</h4>
-                    <p className={`text-gray-600 truncate ${compact ? 'text-xs' : 'text-sm'}`}>by {album.artists.map(artist => artist.name).join(', ')}</p>
+                    <h4
+                      className={`font-medium text-gray-900 truncate ${compact ? 'text-sm' : ''}`}
+                    >
+                      {album.name}
+                    </h4>
+                    <p
+                      className={`text-gray-600 truncate ${compact ? 'text-xs' : 'text-sm'}`}
+                    >
+                      by {album.artists.map((artist) => artist.name).join(', ')}
+                    </p>
                     {!compact && (
-                      <p className="text-xs text-gray-500">{album.release_date} • {album.total_tracks} tracks</p>
+                      <p className="text-xs text-gray-500">
+                        {album.release_date} • {album.total_tracks} tracks
+                      </p>
                     )}
                   </div>
                   {showRankingButtons ? (
@@ -197,10 +234,13 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
                 </div>
               ))}
 
-                          {searchType === 'artist' &&
+            {searchType === 'artist' &&
               results.artists.items.slice(0, compact ? 5 : 10).map((artist) => (
-                <div key={artist.id} className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${compact ? 'p-3' : 'p-4'}`}>
-                  {artist.images[0] && (
+                <div
+                  key={artist.id}
+                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${compact ? 'p-3' : 'p-4'}`}
+                >
+                  {artist.images?.[0] && (
                     <img
                       src={artist.images[0].url}
                       alt={artist.name}
@@ -208,10 +248,20 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <h4 className={`font-medium text-gray-900 truncate ${compact ? 'text-sm' : ''}`}>{artist.name}</h4>
-                    <p className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}>{artist.genres?.slice(0, 3).join(', ') || 'Artist'}</p>
+                    <h4
+                      className={`font-medium text-gray-900 truncate ${compact ? 'text-sm' : ''}`}
+                    >
+                      {artist.name}
+                    </h4>
+                    <p
+                      className={`text-gray-600 ${compact ? 'text-xs' : 'text-sm'}`}
+                    >
+                      {artist.genres?.slice(0, 3).join(', ') || 'Artist'}
+                    </p>
                     {!compact && (
-                      <p className="text-xs text-gray-500">{artist.followers?.total.toLocaleString()} followers</p>
+                      <p className="text-xs text-gray-500">
+                        {artist.followers?.total.toLocaleString()} followers
+                      </p>
                     )}
                   </div>
                   {showRankingButtons ? (
@@ -242,7 +292,10 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
 
             {searchType === 'track' &&
               results.tracks.items.slice(0, compact ? 5 : 10).map((track) => (
-                <div key={track.id} className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${compact ? 'p-3' : 'p-4'}`}>
+                <div
+                  key={track.id}
+                  className={`flex items-center gap-4 p-4 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${compact ? 'p-3' : 'p-4'}`}
+                >
                   {track.album?.images?.[0] && (
                     <img
                       src={track.album.images[0].url}
@@ -251,10 +304,23 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
                     />
                   )}
                   <div className="flex-1 min-w-0">
-                    <h4 className={`font-medium text-gray-900 truncate ${compact ? 'text-sm' : ''}`}>{track.name}</h4>
-                    <p className={`text-gray-600 truncate ${compact ? 'text-xs' : 'text-sm'}`}>{track.artists.map(a => a.name).join(', ')}</p>
+                    <h4
+                      className={`font-medium text-gray-900 truncate ${compact ? 'text-sm' : ''}`}
+                    >
+                      {track.name}
+                    </h4>
+                    <p
+                      className={`text-gray-600 truncate ${compact ? 'text-xs' : 'text-sm'}`}
+                    >
+                      {track.artists.map((a) => a.name).join(', ')}
+                    </p>
                     {!compact && (
-                      <p className="text-xs text-gray-500">{Math.floor(track.duration_ms/60000)}:{String(Math.floor((track.duration_ms%60000)/1000)).padStart(2,'0')}</p>
+                      <p className="text-xs text-gray-500">
+                        {Math.floor(track.duration_ms / 60000)}:
+                        {String(
+                          Math.floor((track.duration_ms % 60000) / 1000)
+                        ).padStart(2, '0')}
+                      </p>
                     )}
                   </div>
                   <button
@@ -265,8 +331,6 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
                   </button>
                 </div>
               ))}
-
-
           </div>
         </div>
       )}
@@ -274,7 +338,7 @@ export function SearchInterface({ searchType: propSearchType, allowTrackSearch =
       {/* Empty State */}
       {!loading && !error && !results && query.trim() && (
         <div className="text-center py-12 text-gray-500">
-          <p>No results found for "{query}"</p>
+          <p>No results found for &quot;{query}&quot;</p>
         </div>
       )}
 

@@ -4,17 +4,23 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
   try {
     const supabase = createServerSupabaseClient()
-    
+
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
     if (authError || !user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { requestId, action } = await request.json()
-    
+
     if (!requestId || !action || !['accept', 'decline'].includes(action)) {
-      return NextResponse.json({ error: 'Invalid request parameters' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Invalid request parameters' },
+        { status: 400 }
+      )
     }
 
     // Verify the friend request exists and user is the target
@@ -27,7 +33,10 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (requestError || !friendRequest) {
-      return NextResponse.json({ error: 'Friend request not found' }, { status: 404 })
+      return NextResponse.json(
+        { error: 'Friend request not found' },
+        { status: 404 }
+      )
     }
 
     // Update friend request status
@@ -39,17 +48,18 @@ export async function POST(request: NextRequest) {
 
     if (updateError) {
       console.error('Error updating friend request:', updateError)
-      return NextResponse.json({ error: 'Failed to update friend request' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'Failed to update friend request' },
+        { status: 500 }
+      )
     }
 
     // If accepted, create mutual follows
     if (action === 'accept') {
-      const { error: followError } = await supabase
-        .from('follows')
-        .upsert([
-          { follower_id: friendRequest.requester_id, following_id: user.id },
-          { follower_id: user.id, following_id: friendRequest.requester_id }
-        ])
+      const { error: followError } = await supabase.from('follows').upsert([
+        { follower_id: friendRequest.requester_id, following_id: user.id },
+        { follower_id: user.id, following_id: friendRequest.requester_id },
+      ])
 
       if (followError) {
         console.error('Error creating mutual follows:', followError)
@@ -65,13 +75,18 @@ export async function POST(request: NextRequest) {
       .eq('type', 'friend_request')
       .eq('data->friend_request_id', requestId)
 
-    return NextResponse.json({ 
-      success: true, 
-      message: action === 'accept' ? 'Friend request accepted' : 'Friend request declined'
+    return NextResponse.json({
+      success: true,
+      message:
+        action === 'accept'
+          ? 'Friend request accepted'
+          : 'Friend request declined',
     })
-
   } catch (error) {
     console.error('Error in respond to friend request:', error)
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

@@ -22,11 +22,10 @@ export async function GET(
 
     const data = await spotifyResponse.json()
     return NextResponse.json(data)
-
   } catch (error) {
     console.error('Spotify artist albums error:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch artist albums' }, 
+      { error: 'Failed to fetch artist albums' },
       { status: 500 }
     )
   }

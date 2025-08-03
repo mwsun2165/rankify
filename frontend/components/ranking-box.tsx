@@ -10,17 +10,17 @@ interface RankingBoxProps {
 
 export function RankingBox({ items }: RankingBoxProps) {
   const { setNodeRef, isOver } = useDroppable({
-    id: 'ranking-box'
+    id: 'ranking-box',
   })
 
   return (
     <div
       ref={setNodeRef}
       className={`min-h-96 p-4 border-2 border-dashed rounded-lg transition-colors ${
-        isOver 
-          ? 'border-blue-500 bg-blue-50' 
-          : items.length === 0 
-            ? 'border-gray-300 bg-gray-50' 
+        isOver
+          ? 'border-blue-500 bg-blue-50'
+          : items.length === 0
+            ? 'border-gray-300 bg-gray-50'
             : 'border-gray-300 bg-white'
       }`}
     >

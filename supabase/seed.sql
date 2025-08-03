@@ -1,20 +1,131 @@
--- Seed data for development and testing
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
 
--- Sample artists (using real Spotify IDs for testing)
-INSERT INTO public.artists (id, name, image_url, genres, popularity, spotify_url) VALUES
-('4Z8W4fKeB5YxbusRsdQVPb', 'Radiohead', 'https://i.scdn.co/image/ab6761610000e5eba03696716c9ee605006047fd', ARRAY['alternative rock', 'art rock', 'melancholia', 'oxford indie', 'permanent wave', 'rock'], 95, 'https://open.spotify.com/artist/4Z8W4fKeB5YxbusRsdQVPb'),
-('3WrFJ7ztbogyGnTHbHJFl2', 'The Beatles', 'https://i.scdn.co/image/ab6761610000e5ebe9348cc01ff5d55971bf39ed', ARRAY['british invasion', 'classic rock', 'merseybeat', 'psychedelic rock', 'rock'], 92, 'https://open.spotify.com/artist/3WrFJ7ztbogyGnTHbHJFl2'),
-('06HL4z0CvFAxyc27GXpf02', 'Taylor Swift', 'https://i.scdn.co/image/ab6761610000e5eb859e4c14fa59296c8649e0e4', ARRAY['pop', 'singer-songwriter'], 100, 'https://open.spotify.com/artist/06HL4z0CvFAxyc27GXpf02'),
-('1dfeR4HaWDbWqFHLkxsg1d', 'Queen', 'https://i.scdn.co/image/ab6761610000e5eb40b5c07ab77b6b1a9075fdc0', ARRAY['classic rock', 'glam rock', 'rock'], 91, 'https://open.spotify.com/artist/1dfeR4HaWDbWqFHLkxsg1d');
-
--- Sample albums
-INSERT INTO public.albums (id, name, artist_id, image_url, release_date, total_tracks, spotify_url) VALUES
-('6dVIqQ8qmQ5GBnJ9shOYGE', 'OK Computer', '4Z8W4fKeB5YxbusRsdQVPb', 'https://i.scdn.co/image/ab67616d0000b273c8b444df094279e70d0ed856', '1997-06-16', 12, 'https://open.spotify.com/album/6dVIqQ8qmQ5GBnJ9shOYGE'),
-('7ycBtnsMtyVbbwTfJwRjSP', 'In Rainbows', '4Z8W4fKeB5YxbusRsdQVPb', 'https://i.scdn.co/image/ab67616d0000b273f2e2c166174c2b82e853c0b8', '2007-10-10', 10, 'https://open.spotify.com/album/7ycBtnsMtyVbbwTfJwRjSP'),
-('0PT5m6hwPRrpBwIHVnvbFX', 'Abbey Road', '3WrFJ7ztbogyGnTHbHJFl2', 'https://i.scdn.co/image/ab67616d0000b273dc30583ba717007b00cceb25', '1969-09-26', 17, 'https://open.spotify.com/album/0PT5m6hwPRrpBwIHVnvbFX'),
-('7gsWAHLeT0w7es6FofOXk1', 'Sgt. Pepper''s Lonely Hearts Club Band', '3WrFJ7ztbogyGnTHbHJFl2', 'https://i.scdn.co/image/ab67616d0000b273d0ec2db731952b7efabc6397', '1967-06-01', 13, 'https://open.spotify.com/album/7gsWAHLeT0w7es6FofOXk1'),
-('5AEDGbliTTfjOB8TSm1sxt', 'folklore', '06HL4z0CvFAxyc27GXpf02', 'https://i.scdn.co/image/ab67616d0000b273395b9e0da9d54c0f9e3b8cf6', '2020-07-24', 16, 'https://open.spotify.com/album/5AEDGbliTTfjOB8TSm1sxt'),
-('4hDok0OAJd57SGIT8xuWJH', 'A Night at the Opera', '1dfeR4HaWDbWqFHLkxsg1d', 'https://i.scdn.co/image/ab67616d0000b273ce4f1737bc8a646c8c4bd25a', '1975-11-21', 12, 'https://open.spotify.com/album/4hDok0OAJd57SGIT8xuWJH');
-
--- Note: Sample user profiles and rankings would be created after users sign up via Spotify OAuth
--- This seed data provides the basic artist/album catalog for testing
+CREATE TABLE public.albums (
+  id text NOT NULL,
+  name text NOT NULL,
+  artist_id text,
+  image_url text,
+  release_date date,
+  total_tracks integer,
+  spotify_url text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT albums_pkey PRIMARY KEY (id),
+  CONSTRAINT albums_artist_id_fkey FOREIGN KEY (artist_id) REFERENCES public.artists(id)
+);
+CREATE TABLE public.artists (
+  id text NOT NULL,
+  name text NOT NULL,
+  image_url text,
+  genres ARRAY,
+  popularity integer,
+  spotify_url text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT artists_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.follows (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  follower_id uuid NOT NULL,
+  following_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT follows_pkey PRIMARY KEY (id),
+  CONSTRAINT follows_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES public.profiles(id),
+  CONSTRAINT follows_following_id_fkey FOREIGN KEY (following_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.friend_requests (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  requester_id uuid NOT NULL,
+  target_id uuid NOT NULL,
+  status text NOT NULL DEFAULT 'pending'::text CHECK (status = ANY (ARRAY['pending'::text, 'accepted'::text, 'declined'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT friend_requests_pkey PRIMARY KEY (id),
+  CONSTRAINT friend_requests_requester_id_fkey FOREIGN KEY (requester_id) REFERENCES public.profiles(id),
+  CONSTRAINT friend_requests_target_id_fkey FOREIGN KEY (target_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  type text NOT NULL CHECK (type = ANY (ARRAY['friend_request'::text, 'ranking_like'::text])),
+  data jsonb NOT NULL,
+  is_read boolean NOT NULL DEFAULT false,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.profiles (
+  id uuid NOT NULL,
+  username text UNIQUE,
+  display_name text,
+  avatar_url text,
+  spotify_id text UNIQUE,
+  spotify_display_name text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  friend_code text NOT NULL UNIQUE,
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.ranking_comments (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  ranking_id uuid NOT NULL,
+  content text NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT ranking_comments_pkey PRIMARY KEY (id),
+  CONSTRAINT ranking_comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT ranking_comments_ranking_id_fkey FOREIGN KEY (ranking_id) REFERENCES public.rankings(id)
+);
+CREATE TABLE public.ranking_items (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  ranking_id uuid NOT NULL,
+  item_id text NOT NULL,
+  position integer NOT NULL,
+  notes text,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT ranking_items_pkey PRIMARY KEY (id),
+  CONSTRAINT ranking_items_ranking_id_fkey FOREIGN KEY (ranking_id) REFERENCES public.rankings(id)
+);
+CREATE TABLE public.ranking_likes (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  ranking_id uuid NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  CONSTRAINT ranking_likes_pkey PRIMARY KEY (id),
+  CONSTRAINT ranking_likes_ranking_id_fkey FOREIGN KEY (ranking_id) REFERENCES public.rankings(id),
+  CONSTRAINT ranking_likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.rankings (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id uuid NOT NULL,
+  title text NOT NULL,
+  description text,
+  ranking_type text NOT NULL CHECK (ranking_type = ANY (ARRAY['albums'::text, 'artists'::text, 'songs'::text])),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  visibility text NOT NULL DEFAULT 'public'::text CHECK (visibility = ANY (ARRAY['public'::text, 'friends'::text, 'private'::text])),
+  pool_item_ids ARRAY DEFAULT '{}'::text[],
+  source_type text CHECK (source_type = ANY (ARRAY['artist'::text, 'album'::text])),
+  source_id text,
+  source_variant integer NOT NULL DEFAULT 1,
+  CONSTRAINT rankings_pkey PRIMARY KEY (id),
+  CONSTRAINT rankings_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.tracks (
+  id text NOT NULL,
+  name text NOT NULL,
+  album_id text,
+  artist_ids ARRAY NOT NULL,
+  duration_ms integer,
+  track_number integer,
+  image_url text,
+  spotify_url text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT tracks_pkey PRIMARY KEY (id),
+  CONSTRAINT tracks_album_id_fkey FOREIGN KEY (album_id) REFERENCES public.albums(id)
+);

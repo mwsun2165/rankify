@@ -11,17 +11,26 @@ interface RankingViewProps {
   isOwner?: boolean
 }
 
-export function RankingView({ ranking, items, isOwner = false }: RankingViewProps) {
+export function RankingView({
+  ranking,
+  items,
+  isOwner = false,
+}: RankingViewProps) {
   const router = useRouter()
   const supabase = createClientSupabaseClient()
   const [copied, setCopied] = useState(false)
-  const [visibility, setVisibility] = useState<string>(ranking.visibility || 'public')
+  const [visibility, setVisibility] = useState<string>(
+    ranking.visibility || 'public'
+  )
   const [processing, setProcessing] = useState(false)
 
   /* ---------------------------------- utils --------------------------------- */
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric',
-  })
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    })
 
   const formatDuration = (ms?: number | null) => {
     if (!ms) return ''
@@ -45,14 +54,16 @@ export function RankingView({ ranking, items, isOwner = false }: RankingViewProp
   }
 
   /* ---------------------------- owner interactions --------------------------- */
-  const handleVisibilityChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleVisibilityChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
     const newVisibility = e.target.value
     setVisibility(newVisibility)
 
     setProcessing(true)
     const { error } = await supabase
       .from('rankings')
-      .update({ visibility: newVisibility })
+      .update({ visibility: newVisibility } as any)
       .eq('id', ranking.id)
     if (error) console.error(error)
     setProcessing(false)
@@ -90,12 +101,13 @@ export function RankingView({ ranking, items, isOwner = false }: RankingViewProp
         <div className="flex-1">
           <h1 className="text-2xl font-bold text-gray-900">{ranking.title}</h1>
           <p className="text-sm text-gray-500">
-            by {ranking.profiles?.display_name || ranking.profiles?.username || 'Anonymous'} ·{' '}
-            {formatDate(ranking.created_at)}
+            by{' '}
+            {ranking.profiles?.display_name ||
+              ranking.profiles?.username ||
+              'Anonymous'}{' '}
+            · {formatDate(ranking.created_at)}
           </p>
         </div>
-
-
 
         {/* Export button */}
         <button
@@ -117,30 +129,37 @@ export function RankingView({ ranking, items, isOwner = false }: RankingViewProp
             const showThumb = ranking.ranking_type !== 'songs'
             const thumbClasses = isArtist ? 'rounded-full' : 'rounded'
             return (
-              <li key={ri.item_id} className="flex items-center gap-3 p-3 border rounded bg-gray-50">
+              <li
+                key={ri.item_id}
+                className="flex items-center gap-3 p-3 border rounded bg-gray-50"
+              >
                 {/* Position number */}
                 <div className="flex-shrink-0 w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-semibold">
                   {ri.position}
                 </div>
 
                 {/* Thumbnail for artists/albums */}
-                {showThumb && (
-                  meta.image_url ? (
+                {showThumb &&
+                  (meta.image_url ? (
                     <img
                       src={meta.image_url}
                       alt={meta.name}
                       className={`h-12 w-12 object-cover ${thumbClasses}`}
                     />
                   ) : (
-                    <div className={`h-12 w-12 bg-gray-200 flex-shrink-0 ${thumbClasses}`}></div>
-                  )
-                )}
+                    <div
+                      className={`h-12 w-12 bg-gray-200 flex-shrink-0 ${thumbClasses}`}
+                    ></div>
+                  ))}
 
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-900 truncate">{meta.name}</p>
+                  <p className="font-medium text-gray-900 truncate">
+                    {meta.name}
+                  </p>
                   <p className="text-sm text-gray-500 truncate">
                     {ranking.ranking_type === 'albums' && meta.artist_name}
-                    {ranking.ranking_type === 'songs' && formatDuration(meta.duration_ms)}
+                    {ranking.ranking_type === 'songs' &&
+                      formatDuration(meta.duration_ms)}
                   </p>
                 </div>
               </li>

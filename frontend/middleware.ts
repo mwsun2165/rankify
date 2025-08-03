@@ -29,7 +29,7 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value
         },
       },
-    },
+    }
   )
 
   const {

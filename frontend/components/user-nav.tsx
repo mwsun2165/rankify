@@ -16,7 +16,9 @@ export function UserNav() {
   useEffect(() => {
     // Get initial user (secure method)
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
       setUser(user)
       setLoading(false)
     }
@@ -24,20 +26,18 @@ export function UserNav() {
     getUser()
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setUser(session?.user ?? null)
-        setLoading(false)
-      }
-    )
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
 
     return () => subscription.unsubscribe()
   }, [supabase.auth])
 
   if (loading) {
-    return (
-      <div className="animate-pulse bg-gray-200 h-8 w-24 rounded"></div>
-    )
+    return <div className="animate-pulse bg-gray-200 h-8 w-24 rounded"></div>
   }
 
   if (!user) {
@@ -47,7 +47,10 @@ export function UserNav() {
   return (
     <div className="flex items-center gap-3">
       <NotificationDropdown />
-      <Link href="/profile" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+      <Link
+        href="/profile"
+        className="flex items-center gap-3 hover:opacity-80 transition-opacity"
+      >
         {user.user_metadata?.avatar_url && (
           <img
             src={user.user_metadata.avatar_url}

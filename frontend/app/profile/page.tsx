@@ -22,7 +22,10 @@ interface UserProfile {
 export default function ProfilePage() {
   const [user, setUser] = useState<User | null>(null)
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [stats, setStats] = useState<ProfileStats>({ friendCount: 0, totalLikes: 0 })
+  const [stats, setStats] = useState<ProfileStats>({
+    friendCount: 0,
+    totalLikes: 0,
+  })
   const [loading, setLoading] = useState(true)
   const supabase = createClientSupabaseClient()
 
@@ -30,7 +33,10 @@ export default function ProfilePage() {
     const loadProfile = async () => {
       try {
         // Get authenticated user
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser()
         if (authError || !user) {
           setLoading(false)
           return
@@ -53,20 +59,21 @@ export default function ProfilePage() {
         setProfile(profileData)
 
         // Get friend count using the database function
-        const { data: friendCountData, error: friendCountError } = await supabase
-          .rpc('get_friend_count', { user_uuid: user.id })
+        const { data: friendCountData, error: friendCountError } =
+          await supabase.rpc('get_friend_count', { user_uuid: user.id })
 
         // Get total likes on public rankings
-        const { data: likesData, error: likesError } = await supabase
-          .rpc('get_user_ranking_likes', { user_uuid: user.id })
+        const { data: likesData, error: likesError } = await supabase.rpc(
+          'get_user_ranking_likes',
+          { user_uuid: user.id }
+        )
 
         if (!friendCountError && !likesError) {
           setStats({
             friendCount: friendCountData || 0,
-            totalLikes: likesData || 0
+            totalLikes: likesData || 0,
           })
         }
-
       } catch (error) {
         console.error('Error loading profile:', error)
       } finally {
@@ -129,14 +136,26 @@ export default function ProfilePage() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
+                  <svg
+                    className="w-5 h-5 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"
+                    />
                   </svg>
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Friends</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.friendCount}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.friendCount}
+                </p>
               </div>
             </div>
           </div>
@@ -145,14 +164,26 @@ export default function ProfilePage() {
             <div className="flex items-center">
               <div className="flex-shrink-0">
                 <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
-                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                  <svg
+                    className="w-5 h-5 text-red-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                    />
                   </svg>
                 </div>
               </div>
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-600">Total Likes</p>
-                <p className="text-2xl font-bold text-gray-900">{stats.totalLikes}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {stats.totalLikes}
+                </p>
                 <p className="text-xs text-gray-500">on your public rankings</p>
               </div>
             </div>
@@ -160,7 +191,10 @@ export default function ProfilePage() {
         </div>
 
         {/* Friend Code Card */}
-        <FriendSystemCard friendCode={profile.friend_code} userId={profile.id} />
+        <FriendSystemCard
+          friendCode={profile.friend_code}
+          userId={profile.id}
+        />
       </div>
     </div>
   )

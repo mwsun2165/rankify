@@ -8,7 +8,10 @@ interface FriendCodeCardProps {
   hideHeader?: boolean
 }
 
-export function FriendCodeCard({ friendCode, hideHeader = false }: FriendCodeCardProps) {
+export function FriendCodeCard({
+  friendCode,
+  hideHeader = false,
+}: FriendCodeCardProps) {
   const [addFriendCode, setAddFriendCode] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -53,12 +56,16 @@ export function FriendCodeCard({ friendCode, hideHeader = false }: FriendCodeCar
   return (
     <div className="bg-white rounded-lg shadow-sm p-6">
       {!hideHeader && (
-        <h2 className="text-xl font-semibold text-gray-900 mb-6">Friend System</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">
+          Friend System
+        </h2>
       )}
-      
+
       {/* Your Friend Code */}
       <div className="mb-8">
-        <h3 className="text-lg font-medium text-gray-900 mb-3">Your Friend Code</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-3">
+          Your Friend Code
+        </h3>
         <div className="flex items-center space-x-3">
           <div className="flex-1">
             <div className="relative">
@@ -105,7 +112,7 @@ export function FriendCodeCard({ friendCode, hideHeader = false }: FriendCodeCar
           </button>
         </form>
         <p className="text-sm text-gray-600 mt-2">
-          Enter a friend's 8-character code to send them a friend request.
+          Enter a friend&apos;s 8-character code to send them a friend request.
         </p>
       </div>
     </div>

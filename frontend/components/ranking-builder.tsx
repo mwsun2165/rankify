@@ -2,22 +2,30 @@
 
 import { useState, useCallback, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { 
-  DndContext, 
-  DragEndEvent, 
-  DragOverEvent, 
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverEvent,
   DragStartEvent,
   closestCenter,
   DragOverlay,
-  pointerWithin
+  pointerWithin,
 } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable'
 import { restrictToWindowEdges } from '@dnd-kit/modifiers'
 import { RankingBox } from './ranking-box'
 import { ItemPool } from './item-pool'
 import { SearchInterface } from './search-interface'
 import { DragOverlay as CustomDragOverlay } from './drag-overlay'
-import { getArtistAlbums, getAlbumTracks, getArtistTopTracks } from '@/lib/spotify-detailed'
+import {
+  getArtistAlbums,
+  getAlbumTracks,
+  getArtistTopTracks,
+} from '@/lib/spotify-detailed'
 import { createClientSupabaseClient } from '@/lib/supabase-client'
 import type { SpotifyAlbum, SpotifyArtist, SpotifyTrack } from '@/types/spotify'
 
@@ -25,7 +33,9 @@ export type RankableItem = SpotifyAlbum | SpotifyArtist | SpotifyTrack
 
 export function RankingBuilder() {
   const searchParams = useSearchParams()
-  const [rankingType, setRankingType] = useState<'albums' | 'artists' | 'songs'>('albums')
+  const [rankingType, setRankingType] = useState<
+    'albums' | 'artists' | 'songs'
+  >('albums')
   const [rankedItems, setRankedItems] = useState<RankableItem[]>([])
   const [poolItems, setPoolItems] = useState<RankableItem[]>([])
   const [fixedPool, setFixedPool] = useState(false)
@@ -44,7 +54,7 @@ export function RankingBuilder() {
         const supabase = createClientSupabaseClient()
         const { data, error } = await supabase
           .from('rankings')
-          .select(`*, ranking_items(position,item_id), pool_item_ids, source_type, source_id`)
+          .select(`*, ranking_items(position,item_id)`)
           .eq('id', editId)
           .single()
         if (error || !data) return
@@ -53,22 +63,36 @@ export function RankingBuilder() {
         setTitle(data.title)
         setRankingType(data.ranking_type as any)
 
-        // Fetch metadata for ranked and pool items from DB
-        const allIds = Array.from(new Set([
-          ...data.ranking_items.map((ri: any) => ri.item_id),
-          ...(data.pool_item_ids || [])
-        ]))
+        // Fetch metadata for ranked items from DB
+        const allIds = Array.from(
+          new Set([...data.ranking_items.map((ri: any) => ri.item_id)])
+        )
         if (allIds.length) {
-          let table = data.ranking_type === 'artists' ? 'artists' : data.ranking_type === 'albums' ? 'albums' : 'tracks'
-          const { data: meta } = await supabase.from(table).select('*').in('id', allIds)
+          let table: string =
+            data.ranking_type === 'artists'
+              ? 'artists'
+              : data.ranking_type === 'albums'
+                ? 'albums'
+                : 'tracks'
+          const { data: meta } = await supabase
+            .from(table as any)
+            .select('*')
+            .in('id', allIds)
 
           // Build artist map for albums to include artist names
           let artistMap: Record<string, string> = {}
           if (data.ranking_type === 'albums' && meta && meta.length) {
-            const artistIds = Array.from(new Set(meta.map((row: any) => row.artist_id).filter(Boolean)))
+            const artistIds = Array.from(
+              new Set(meta.map((row: any) => row.artist_id).filter(Boolean))
+            )
             if (artistIds.length) {
-              const { data: artists } = await supabase.from('artists').select('id, name').in('id', artistIds)
-              artistMap = Object.fromEntries((artists || []).map((a: any) => [a.id, a.name]))
+              const { data: artists } = await supabase
+                .from('artists')
+                .select('id, name')
+                .in('id', artistIds)
+              artistMap = Object.fromEntries(
+                (artists || []).map((a: any) => [a.id, a.name])
+              )
             }
           }
 
@@ -80,26 +104,30 @@ export function RankingBuilder() {
                 images: row.image_url ? [{ url: row.image_url }] : [],
                 genres: row.genres || [],
                 followers: { total: row.popularity || 0 },
-                external_urls: { spotify: row.spotify_url }
+                external_urls: { spotify: row.spotify_url },
               }
             } else if (data.ranking_type === 'albums') {
               return {
                 id: row.id,
                 name: row.name,
                 images: row.image_url ? [{ url: row.image_url }] : [],
-                artists: [{ id: row.artist_id, name: artistMap[row.artist_id] || '' }],
+                artists: [
+                  { id: row.artist_id, name: artistMap[row.artist_id] || '' },
+                ],
                 total_tracks: row.total_tracks,
                 release_date: row.release_date,
-                external_urls: { spotify: row.spotify_url }
+                external_urls: { spotify: row.spotify_url },
               }
             } else {
               return {
                 id: row.id,
                 name: row.name,
-                album: { images: row.image_url ? [{ url: row.image_url }] : [] },
+                album: {
+                  images: row.image_url ? [{ url: row.image_url }] : [],
+                },
                 duration_ms: row.duration_ms,
                 artists: [],
-                external_urls: { spotify: row.spotify_url }
+                external_urls: { spotify: row.spotify_url },
               }
             }
           }
@@ -109,11 +137,17 @@ export function RankingBuilder() {
             metaMap[row.id] = toSpotify(row)
           })
 
-          setRankedItems(data.ranking_items.sort((a: any,b: any)=>a.position-b.position).map((ri: any)=>metaMap[ri.item_id]).filter(Boolean))
-          setPoolItems((data.pool_item_ids||[]).map((id:string)=>metaMap[id]).filter(Boolean))
+          setRankedItems(
+            data.ranking_items
+              .sort((a: any, b: any) => a.position - b.position)
+              .map((ri: any) => metaMap[ri.item_id])
+              .filter(Boolean)
+          )
+          // Pool items are not stored in database, start with empty pool
+          setPoolItems([])
         }
 
-        if (data.source_type && data.source_id) {
+        if ((data as any).source_type && (data as any).source_id) {
           setFixedPool(true)
         }
       })()
@@ -129,7 +163,7 @@ export function RankingBuilder() {
 
     if (type && (artistId || albumId)) {
       setRankingType(type)
-      
+
       // Set default title
       if (type === 'albums' && artistName) {
         setTitle(`${artistName} - Albums Ranking`)
@@ -145,13 +179,17 @@ export function RankingBuilder() {
     }
   }, [searchParams])
 
-  const loadPoolItems = async (type: 'albums' | 'songs', artistId?: string | null, albumId?: string | null) => {
+  const loadPoolItems = async (
+    type: 'albums' | 'songs',
+    artistId?: string | null,
+    albumId?: string | null
+  ) => {
     if (!artistId && !albumId) return
 
     setLoading(true)
     try {
       let items: RankableItem[] = []
-      
+
       if (type === 'albums' && artistId) {
         items = await getArtistAlbums(artistId)
       } else if (type === 'songs' && albumId) {
@@ -159,7 +197,7 @@ export function RankingBuilder() {
       } else if (type === 'songs' && artistId) {
         items = await getArtistTopTracks(artistId)
       }
-      
+
       setPoolItems(items)
     } catch (error) {
       console.error('Failed to load pool items:', error)
@@ -169,15 +207,20 @@ export function RankingBuilder() {
     }
   }
 
-  const handleAddToPool = useCallback((item: RankableItem) => {
-    // Check if item is already in pool or ranked
-    const isInPool = poolItems.some(poolItem => poolItem.id === item.id)
-    const isRanked = rankedItems.some(rankedItem => rankedItem.id === item.id)
-    
-    if (!isInPool && !isRanked) {
-      setPoolItems(prev => [...prev, item])
-    }
-  }, [poolItems, rankedItems])
+  const handleAddToPool = useCallback(
+    (item: RankableItem) => {
+      // Check if item is already in pool or ranked
+      const isInPool = poolItems.some((poolItem) => poolItem.id === item.id)
+      const isRanked = rankedItems.some(
+        (rankedItem) => rankedItem.id === item.id
+      )
+
+      if (!isInPool && !isRanked) {
+        setPoolItems((prev) => [...prev, item])
+      }
+    },
+    [poolItems, rankedItems]
+  )
 
   // Handle user switching ranking type (Artists / Albums / Songs)
   const handleRankingTypeChange = (type: 'albums' | 'artists' | 'songs') => {
@@ -193,30 +236,34 @@ export function RankingBuilder() {
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
     const activeId = active.id as string
-    
+
     // Find the active item
-    const item = [...rankedItems, ...poolItems].find(item => item.id === activeId)
+    const item = [...rankedItems, ...poolItems].find(
+      (item) => item.id === activeId
+    )
     setActiveItem(item || null)
   }
 
   const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event
-    
+
     if (!over) return
 
     const activeId = active.id as string
     const overId = over.id as string
 
     // Find the active item
-    const activeItem = [...rankedItems, ...poolItems].find(item => item.id === activeId)
+    const activeItem = [...rankedItems, ...poolItems].find(
+      (item) => item.id === activeId
+    )
     if (!activeItem) return
 
     // Handle dragging over ranking box
     if (overId === 'ranking-box') {
       // Move from pool to ranking if not already there
-      if (poolItems.some(item => item.id === activeId)) {
-        setPoolItems(prev => prev.filter(item => item.id !== activeId))
-        setRankedItems(prev => [...prev, activeItem])
+      if (poolItems.some((item) => item.id === activeId)) {
+        setPoolItems((prev) => prev.filter((item) => item.id !== activeId))
+        setRankedItems((prev) => [...prev, activeItem])
       }
       return
     }
@@ -224,19 +271,19 @@ export function RankingBuilder() {
     // Handle dragging over item pool
     if (overId === 'item-pool') {
       // Move from ranking to pool if not already there
-      if (rankedItems.some(item => item.id === activeId)) {
-        setRankedItems(prev => prev.filter(item => item.id !== activeId))
-        setPoolItems(prev => [...prev, activeItem])
+      if (rankedItems.some((item) => item.id === activeId)) {
+        setRankedItems((prev) => prev.filter((item) => item.id !== activeId))
+        setPoolItems((prev) => [...prev, activeItem])
       }
       return
     }
 
     // Handle reordering within ranking
-    const activeIndex = rankedItems.findIndex(item => item.id === activeId)
-    const overIndex = rankedItems.findIndex(item => item.id === overId)
+    const activeIndex = rankedItems.findIndex((item) => item.id === activeId)
+    const overIndex = rankedItems.findIndex((item) => item.id === overId)
 
     if (activeIndex !== -1 && overIndex !== -1 && activeIndex !== overIndex) {
-      setRankedItems(prev => arrayMove(prev, activeIndex, overIndex))
+      setRankedItems((prev) => arrayMove(prev, activeIndex, overIndex))
     }
   }
 
@@ -248,11 +295,11 @@ export function RankingBuilder() {
     if (!over) {
       // If dropped outside any droppable area, return item to pool if it was in ranking
       const activeId = active.id as string
-      const activeItem = rankedItems.find(item => item.id === activeId)
-      
+      const activeItem = rankedItems.find((item) => item.id === activeId)
+
       if (activeItem) {
-        setRankedItems(prev => prev.filter(item => item.id !== activeId))
-        setPoolItems(prev => [...prev, activeItem])
+        setRankedItems((prev) => prev.filter((item) => item.id !== activeId))
+        setPoolItems((prev) => [...prev, activeItem])
       }
       return
     }
@@ -277,8 +324,10 @@ export function RankingBuilder() {
     try {
       // Get current user
       const supabase = createClientSupabaseClient()
-      const { data: { user } } = await supabase.auth.getUser()
-      
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
       if (!user) {
         alert('You must be logged in to save rankings')
         return
@@ -286,7 +335,7 @@ export function RankingBuilder() {
 
       // Save the ranking
       const { saveRanking, updateRanking } = await import('@/lib/rankings')
-      
+
       if (rankingId) {
         await updateRanking(rankingId, {
           title: title.trim(),
@@ -294,19 +343,38 @@ export function RankingBuilder() {
           visibility: 'public',
           items: rankedItems,
           pool_items: poolItems,
-          source_type: fixedPool ? (searchParams.get('artistId') ? 'artist' : searchParams.get('albumId') ? 'album' : undefined) as any : undefined,
-          source_id: fixedPool ? (searchParams.get('artistId') || searchParams.get('albumId') || undefined) : undefined,
+          source_type: fixedPool
+            ? ((searchParams.get('artistId')
+                ? 'artist'
+                : searchParams.get('albumId')
+                  ? 'album'
+                  : undefined) as any)
+            : undefined,
+          source_id: fixedPool
+            ? searchParams.get('artistId') ||
+              searchParams.get('albumId') ||
+              undefined
+            : undefined,
         })
       } else {
-        const newId = await saveRanking({
-        title: title.trim(),
-        ranking_type: rankingType,
-        visibility: 'public',
-        items: rankedItems,
-        pool_items: poolItems,
-        source_type: (searchParams.get('artistId') || searchParams.get('albumId')) ? (searchParams.get('artistId') ? 'artist' : 'album') as any : undefined,
-        source_id: searchParams.get('artistId') || searchParams.get('albumId') || undefined
-      }, user.id)
+        const newId = await saveRanking(
+          {
+            title: title.trim(),
+            ranking_type: rankingType,
+            visibility: 'public',
+            items: rankedItems,
+            pool_items: poolItems,
+            source_type:
+              searchParams.get('artistId') || searchParams.get('albumId')
+                ? ((searchParams.get('artistId') ? 'artist' : 'album') as any)
+                : undefined,
+            source_id:
+              searchParams.get('artistId') ||
+              searchParams.get('albumId') ||
+              undefined,
+          },
+          user.id
+        )
       }
 
       // Redirect to browse page to see the saved ranking
@@ -320,8 +388,8 @@ export function RankingBuilder() {
   }
 
   return (
-    <DndContext 
-      collisionDetection={pointerWithin} 
+    <DndContext
+      collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
@@ -330,7 +398,10 @@ export function RankingBuilder() {
       <div className="space-y-8 overflow-x-hidden">
         {/* Title Input */}
         <div>
-          <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+          <label
+            htmlFor="title"
+            className="block text-sm font-medium text-gray-700 mb-2"
+          >
             Ranking Title
           </label>
           <input
@@ -345,7 +416,7 @@ export function RankingBuilder() {
 
         {/* Ranking Type Toggle */}
         <div className="flex items-center gap-4">
-          {(['artists','albums','songs'] as const).map((type) => (
+          {(['artists', 'albums', 'songs'] as const).map((type) => (
             <button
               key={type}
               onClick={() => handleRankingTypeChange(type)}
@@ -390,8 +461,11 @@ export function RankingBuilder() {
                 )}
               </button>
             </div>
-            
-            <SortableContext items={rankedItems.map(item => item.id)} strategy={verticalListSortingStrategy}>
+
+            <SortableContext
+              items={rankedItems.map((item) => item.id)}
+              strategy={verticalListSortingStrategy}
+            >
               <RankingBox items={rankedItems} />
             </SortableContext>
           </div>
@@ -409,11 +483,15 @@ export function RankingBuilder() {
             {/* Search - only show if pool is flexible */}
             {!fixedPool && (
               <div>
-                <h3 className="text-lg font-semibold mb-4">Search & Add Items</h3>
-                <SearchInterface 
+                <h3 className="text-lg font-semibold mb-4">
+                  Search & Add Items
+                </h3>
+                <SearchInterface
                   key={rankingType}
                   allowTrackSearch={true}
-                  searchType={rankingType === 'albums' ? 'album' : rankingType === 'artists' ? 'artist' : 'track'}
+                  searchType={
+                    rankingType === 'albums' ? 'album' : 'artist' // default to artist for songs and other types
+                  }
                   onAddItem={handleAddToPool}
                   compact={true}
                 />
@@ -422,7 +500,7 @@ export function RankingBuilder() {
           </div>
         </div>
       </div>
-      
+
       <DragOverlay modifiers={[restrictToWindowEdges]}>
         {activeItem ? <CustomDragOverlay item={activeItem} /> : null}
       </DragOverlay>
