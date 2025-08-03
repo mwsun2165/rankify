@@ -42,14 +42,36 @@ export function RankingView({
 
   const exportText = () => {
     const lines: string[] = []
+
+    // Title
     lines.push(`# ${ranking.title}`)
+
+    // Created by
+    const creator =
+      ranking.profiles?.display_name ||
+      ranking.profiles?.username ||
+      'Anonymous'
+    lines.push(`Created by ${creator}`)
     lines.push('')
+
+    // Ranked items
     ranking.ranking_items
       .sort((a: any, b: any) => a.position - b.position)
       .forEach((ri: any) => {
         const meta = items.find((i) => i.id === ri.item_id)
         lines.push(`${ri.position}. ${meta?.name || ri.item_id}`)
       })
+
+    // Optional footer with link
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
+    if (siteUrl) {
+      lines.push('')
+      // Ensure we don't end up with double slashes
+      lines.push(
+        `View this ranking online: ${siteUrl.replace(/\/$/, '')}/browse/${ranking.id}`
+      )
+    }
+
     return lines.join('\n')
   }
 
