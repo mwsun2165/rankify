@@ -146,7 +146,8 @@ async function ensureSpotifyDataExists(items: RankableItem[]): Promise<void> {
 
   items.forEach((item) => {
     if (!item) return
-    if ('artists' in item && 'total_tracks' in item) {
+    // Identify album objects – simplified albums from various Spotify endpoints may not include "total_tracks" yet
+    if ('artists' in item && (('total_tracks' in item) || ('album_type' in item) || ('release_date' in item))) {
       // This is an album
       albums.set(item.id, {
         id: item.id,
